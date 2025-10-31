@@ -1,10 +1,11 @@
 {
   "id": "chirp-chirp-post-office",
   "name": "啾啾邮局 (Chirp Chirp Post Office)",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "minAppVersion": "0.15.0",
   "description": "基于邮件的端到端加密笔记分享插件。通过 PGP 加密，在好友之间安全地分享 Obsidian 笔记。",
   "author": "PITI",
-  "authorUrl": "https://github.com/yourusername/chirp-chirp-post-office",
+  "authorUrl": "http://www.moaono.com",
+  "fundingUrl": "https://github.com/wwaa321/Chirp-Chirp-Post-Office",
   "isDesktopOnly": false
 }
