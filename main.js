@@ -27,7 +27,7 @@ __export(main_exports, {
   default: () => ChirpChirpPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian11 = require("obsidian");
+var import_obsidian12 = require("obsidian");
 
 // src/modules/AuthModule.ts
 var AuthModule = class {
@@ -16047,9 +16047,97 @@ var UIModule = class {
   }
 };
 
-// src/ui/SettingTab.ts
+// src/modules/ReceiveLogger.ts
 var import_obsidian9 = require("obsidian");
-var ChirpChirpSettingTab = class extends import_obsidian9.PluginSettingTab {
+var ReceiveLogger = class {
+  constructor(plugin) {
+    this.LOG_FILE_NAME = "\u63A5\u6536\u8BB0\u5F55.md";
+    this.plugin = plugin;
+  }
+  /**
+   * 获取接收记录文件路径
+   */
+  getLogFilePath() {
+    const inboxFolder = this.plugin.data.settings.inboxFolder;
+    return `${inboxFolder}/${this.LOG_FILE_NAME}`;
+  }
+  /**
+   * 记录接收到的啾啾
+   */
+  async logReceivedChirps(records) {
+    if (records.length === 0)
+      return;
+    try {
+      const logPath = this.getLogFilePath();
+      const newEntry = this.formatLogEntry(records);
+      const existingFile = this.plugin.app.vault.getAbstractFileByPath(logPath);
+      if (existingFile && existingFile instanceof import_obsidian9.TFile) {
+        const existingContent = await this.plugin.app.vault.read(existingFile);
+        const updatedContent = newEntry + "\n" + existingContent;
+        await this.plugin.app.vault.modify(existingFile, updatedContent);
+      } else {
+        const initialContent = this.createInitialContent(newEntry);
+        await this.ensureFolderExists();
+        await this.plugin.app.vault.create(logPath, initialContent);
+      }
+      console.log(`\u63A5\u6536\u8BB0\u5F55\u5DF2\u66F4\u65B0: ${records.length} \u6761`);
+    } catch (error) {
+      console.error("\u5199\u5165\u63A5\u6536\u8BB0\u5F55\u5931\u8D25:", error);
+    }
+  }
+  /**
+   * 确保文件夹存在
+   */
+  async ensureFolderExists() {
+    const inboxFolder = this.plugin.data.settings.inboxFolder;
+    const folder = this.plugin.app.vault.getAbstractFileByPath(inboxFolder);
+    if (!folder) {
+      try {
+        await this.plugin.app.vault.createFolder(inboxFolder);
+      } catch (error) {
+        console.error("\u521B\u5EFA\u6587\u4EF6\u5939\u5931\u8D25:", error);
+      }
+    }
+  }
+  /**
+   * 格式化日志条目
+   */
+  formatLogEntry(records) {
+    const timestamp = new Date(records[0].timestamp);
+    const dateStr = this.formatDateTime(timestamp);
+    let entry = `## ${dateStr}
+
+`;
+    for (const record of records) {
+      entry += `- \u{1F4EC} **${record.senderName}** \u2192 \u300A${record.noteTitle}\u300B
+`;
+    }
+    return entry;
+  }
+  /**
+   * 创建初始文件内容
+   */
+  createInitialContent(firstEntry) {
+    return `# \u557E\u557E\u63A5\u6536\u8BB0\u5F55
+
+${firstEntry}`;
+  }
+  /**
+   * 格式化日期时间
+   */
+  formatDateTime(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  }
+};
+
+// src/ui/SettingTab.ts
+var import_obsidian10 = require("obsidian");
+var ChirpChirpSettingTab = class extends import_obsidian10.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -16067,7 +16155,7 @@ var ChirpChirpSettingTab = class extends import_obsidian9.PluginSettingTab {
    */
   renderEmailSection(containerEl) {
     containerEl.createEl("h3", { text: "\u90AE\u7BB1\u914D\u7F6E" });
-    new import_obsidian9.Setting(containerEl).setName("\u90AE\u7BB1\u670D\u52A1\u5546").setDesc("\u9009\u62E9\u60A8\u8981\u4F7F\u7528\u7684\u90AE\u7BB1\u670D\u52A1\u5546").addDropdown((dropdown) => {
+    new import_obsidian10.Setting(containerEl).setName("\u90AE\u7BB1\u670D\u52A1\u5546").setDesc("\u9009\u62E9\u60A8\u8981\u4F7F\u7528\u7684\u90AE\u7BB1\u670D\u52A1\u5546").addDropdown((dropdown) => {
       dropdown.addOption("", "\u8BF7\u9009\u62E9...");
       const providers = getSupportedProviders();
       providers.forEach((provider) => {
@@ -16110,7 +16198,7 @@ var ChirpChirpSettingTab = class extends import_obsidian9.PluginSettingTab {
     steps.forEach((step) => {
       ol2.createEl("li", { text: step });
     });
-    new import_obsidian9.Setting(containerEl).setName("\u90AE\u7BB1\u5730\u5740").setDesc("\u8F93\u5165\u60A8\u7684\u90AE\u7BB1\u5730\u5740").addText((text) => {
+    new import_obsidian10.Setting(containerEl).setName("\u90AE\u7BB1\u5730\u5740").setDesc("\u8F93\u5165\u60A8\u7684\u90AE\u7BB1\u5730\u5740").addText((text) => {
       let placeholder = "example@example.com";
       if (provider === "163")
         placeholder = "example@163.com";
@@ -16123,20 +16211,20 @@ var ChirpChirpSettingTab = class extends import_obsidian9.PluginSettingTab {
         await this.plugin.saveSettings();
       });
     });
-    new import_obsidian9.Setting(containerEl).setName("\u6388\u6743\u7801").setDesc("\u7C98\u8D34\u4ECE\u90AE\u7BB1\u8BBE\u7F6E\u4E2D\u83B7\u53D6\u7684\u6388\u6743\u7801").addText((text) => {
+    new import_obsidian10.Setting(containerEl).setName("\u6388\u6743\u7801").setDesc("\u7C98\u8D34\u4ECE\u90AE\u7BB1\u8BBE\u7F6E\u4E2D\u83B7\u53D6\u7684\u6388\u6743\u7801").addText((text) => {
       text.setPlaceholder("\u8F93\u5165\u6388\u6743\u7801").setValue(this.plugin.data.auth.password || "").onChange(async (value) => {
         this.plugin.data.auth.password = value;
         await this.plugin.saveSettings();
       });
       text.inputEl.type = "password";
     });
-    new import_obsidian9.Setting(containerEl).setName("\u6D4B\u8BD5\u8FDE\u63A5").setDesc("\u9A8C\u8BC1\u90AE\u7BB1\u914D\u7F6E\u662F\u5426\u6B63\u786E").addButton((button) => {
+    new import_obsidian10.Setting(containerEl).setName("\u6D4B\u8BD5\u8FDE\u63A5").setDesc("\u9A8C\u8BC1\u90AE\u7BB1\u914D\u7F6E\u662F\u5426\u6B63\u786E").addButton((button) => {
       button.setButtonText("\u6D4B\u8BD5\u8FDE\u63A5").setCta().onClick(async () => {
         if (!this.plugin.data.auth.email || !this.plugin.data.auth.password) {
-          new import_obsidian9.Notice("\u8BF7\u5148\u586B\u5199\u90AE\u7BB1\u5730\u5740\u548C\u6388\u6743\u7801");
+          new import_obsidian10.Notice("\u8BF7\u5148\u586B\u5199\u90AE\u7BB1\u5730\u5740\u548C\u6388\u6743\u7801");
           return;
         }
-        const notice = new import_obsidian9.Notice("\u6B63\u5728\u6D4B\u8BD5\u8FDE\u63A5...", 0);
+        const notice = new import_obsidian10.Notice("\u6B63\u5728\u6D4B\u8BD5\u8FDE\u63A5...", 0);
         button.setDisabled(true);
         try {
           await this.plugin.mailModule.testIMAPConnection(
@@ -16150,7 +16238,7 @@ var ChirpChirpSettingTab = class extends import_obsidian9.PluginSettingTab {
             provider
           );
           notice.hide();
-          new import_obsidian9.Notice("\u2705 \u8FDE\u63A5\u6210\u529F\uFF01\u90AE\u7BB1\u914D\u7F6E\u6B63\u786E");
+          new import_obsidian10.Notice("\u2705 \u8FDE\u63A5\u6210\u529F\uFF01\u90AE\u7BB1\u914D\u7F6E\u6B63\u786E");
           await this.plugin.saveSettings();
           if (!this.plugin.data.crypto.publicKey) {
             await this.generateKeyPair();
@@ -16159,11 +16247,11 @@ var ChirpChirpSettingTab = class extends import_obsidian9.PluginSettingTab {
           notice.hide();
           console.error("\u6D4B\u8BD5\u8FDE\u63A5\u5931\u8D25:", error);
           if (error.type === "AUTH_FAILED") {
-            new import_obsidian9.Notice("\u274C \u90AE\u7BB1\u5730\u5740\u6216\u6388\u6743\u7801\u9519\u8BEF\uFF0C\u8BF7\u68C0\u67E5\u540E\u91CD\u8BD5");
+            new import_obsidian10.Notice("\u274C \u90AE\u7BB1\u5730\u5740\u6216\u6388\u6743\u7801\u9519\u8BEF\uFF0C\u8BF7\u68C0\u67E5\u540E\u91CD\u8BD5");
           } else if (error.type === "NETWORK_ERROR") {
-            new import_obsidian9.Notice("\u274C \u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u8BBE\u7F6E");
+            new import_obsidian10.Notice("\u274C \u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u8BBE\u7F6E");
           } else {
-            new import_obsidian9.Notice("\u274C \u8FDE\u63A5\u5931\u8D25: " + (error.message || "\u672A\u77E5\u9519\u8BEF"));
+            new import_obsidian10.Notice("\u274C \u8FDE\u63A5\u5931\u8D25: " + (error.message || "\u672A\u77E5\u9519\u8BEF"));
           }
         } finally {
           button.setDisabled(false);
@@ -16208,7 +16296,7 @@ var ChirpChirpSettingTab = class extends import_obsidian9.PluginSettingTab {
    */
   renderPollingSection(containerEl) {
     containerEl.createEl("h3", { text: "\u8F6E\u8BE2\u914D\u7F6E" });
-    new import_obsidian9.Setting(containerEl).setName("\u68C0\u67E5\u95F4\u9694").setDesc("\u81EA\u52A8\u68C0\u67E5\u65B0\u90AE\u4EF6\u7684\u65F6\u95F4\u95F4\u9694\uFF08\u5206\u949F\uFF09").addSlider((slider) => {
+    new import_obsidian10.Setting(containerEl).setName("\u68C0\u67E5\u95F4\u9694").setDesc("\u81EA\u52A8\u68C0\u67E5\u65B0\u90AE\u4EF6\u7684\u65F6\u95F4\u95F4\u9694\uFF08\u5206\u949F\uFF09").addSlider((slider) => {
       slider.setLimits(1, 60, 1).setValue(this.plugin.settings.pollingInterval).setDynamicTooltip().onChange(async (value) => {
         this.plugin.settings.pollingInterval = value;
         await this.plugin.saveSettings();
@@ -16233,7 +16321,7 @@ var ChirpChirpSettingTab = class extends import_obsidian9.PluginSettingTab {
    */
   renderMailHandlingSection(containerEl) {
     containerEl.createEl("h3", { text: "\u90AE\u4EF6\u5904\u7406" });
-    new import_obsidian9.Setting(containerEl).setName("\u6536\u4EF6\u7BB1\u6587\u4EF6\u5939").setDesc("\u63A5\u6536\u5230\u7684\u557E\u557E\u4FDD\u5B58\u7684\u6587\u4EF6\u5939\u8DEF\u5F84").addText((text) => {
+    new import_obsidian10.Setting(containerEl).setName("\u6536\u4EF6\u7BB1\u6587\u4EF6\u5939").setDesc("\u63A5\u6536\u5230\u7684\u557E\u557E\u4FDD\u5B58\u7684\u6587\u4EF6\u5939\u8DEF\u5F84").addText((text) => {
       text.setPlaceholder("\u557E\u557E\u90AE\u5C40").setValue(this.plugin.settings.inboxFolder).onChange(async (value) => {
         this.plugin.settings.inboxFolder = value || "\u557E\u557E\u90AE\u5C40";
         await this.plugin.saveSettings();
@@ -16245,7 +16333,7 @@ var ChirpChirpSettingTab = class extends import_obsidian9.PluginSettingTab {
    */
   async generateKeyPair() {
     try {
-      const notice = new import_obsidian9.Notice("\u6B63\u5728\u751F\u6210\u5BC6\u94A5\u5BF9...", 0);
+      const notice = new import_obsidian10.Notice("\u6B63\u5728\u751F\u6210\u5BC6\u94A5\u5BF9...", 0);
       const email = this.plugin.data.auth.email;
       const name = email.split("@")[0];
       const keyPair = await this.plugin.cryptoModule.generateKeyPair(name, email);
@@ -16255,14 +16343,14 @@ var ChirpChirpSettingTab = class extends import_obsidian9.PluginSettingTab {
       notice.hide();
       this.showPublicKey(keyPair.publicKey);
     } catch (error) {
-      new import_obsidian9.Notice("\u274C \u5BC6\u94A5\u751F\u6210\u5931\u8D25: " + error.message);
+      new import_obsidian10.Notice("\u274C \u5BC6\u94A5\u751F\u6210\u5931\u8D25: " + error.message);
     }
   }
   /**
    * 显示公钥
    */
   showPublicKey(publicKey) {
-    const modal = new class extends import_obsidian9.Modal {
+    const modal = new class extends import_obsidian10.Modal {
       constructor(app) {
         super(app);
       }
@@ -16286,7 +16374,7 @@ var ChirpChirpSettingTab = class extends import_obsidian9.PluginSettingTab {
         copyBtn.style.marginTop = "10px";
         copyBtn.onclick = () => {
           navigator.clipboard.writeText(key);
-          new import_obsidian9.Notice("\u2705 \u516C\u94A5\u5DF2\u590D\u5236\u5230\u526A\u8D34\u677F");
+          new import_obsidian10.Notice("\u2705 \u516C\u94A5\u5DF2\u590D\u5236\u5230\u526A\u8D34\u677F");
         };
       }
     }(this.app);
@@ -16295,7 +16383,7 @@ var ChirpChirpSettingTab = class extends import_obsidian9.PluginSettingTab {
 };
 
 // src/services/ChirpService.ts
-var import_obsidian10 = require("obsidian");
+var import_obsidian11 = require("obsidian");
 var ChirpService = class {
   constructor(plugin) {
     this.plugin = plugin;
@@ -16341,7 +16429,7 @@ var ChirpService = class {
         noteTitle: file.basename,
         status: "success"
       });
-      new import_obsidian10.Notice(`\u2705 \u557E\u557E\u5DF2\u53D1\u9001\u7ED9 ${friend.nickname}\uFF01`);
+      new import_obsidian11.Notice(`\u2705 \u557E\u557E\u5DF2\u53D1\u9001\u7ED9 ${friend.nickname}\uFF01`);
       console.log("\u557E\u557E\u53D1\u9001\u6210\u529F:", {
         to: friend.email,
         note: file.basename
@@ -16357,13 +16445,13 @@ var ChirpService = class {
       });
       if (error.type === "NETWORK_ERROR" /* NETWORK_ERROR */) {
         await this.addToSendQueue(file, friend);
-        new import_obsidian10.Notice("\u26A0\uFE0F \u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u557E\u557E\u5DF2\u52A0\u5165\u53D1\u9001\u961F\u5217");
+        new import_obsidian11.Notice("\u26A0\uFE0F \u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u557E\u557E\u5DF2\u52A0\u5165\u53D1\u9001\u961F\u5217");
       } else if (error.type === "ENCRYPTION_FAILED" /* ENCRYPTION_FAILED */) {
-        new import_obsidian10.Notice("\u274C \u52A0\u5BC6\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u597D\u53CB\u516C\u94A5");
+        new import_obsidian11.Notice("\u274C \u52A0\u5BC6\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u597D\u53CB\u516C\u94A5");
       } else if (error.type === "AUTH_FAILED" /* AUTH_FAILED */) {
-        new import_obsidian10.Notice("\u274C \u8BA4\u8BC1\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u90AE\u7BB1\u914D\u7F6E");
+        new import_obsidian11.Notice("\u274C \u8BA4\u8BC1\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u90AE\u7BB1\u914D\u7F6E");
       } else {
-        new import_obsidian10.Notice("\u274C \u53D1\u9001\u5931\u8D25: " + (error.message || "\u672A\u77E5\u9519\u8BEF"));
+        new import_obsidian11.Notice("\u274C \u53D1\u9001\u5931\u8D25: " + (error.message || "\u672A\u77E5\u9519\u8BEF"));
       }
       throw error;
     }
@@ -16467,41 +16555,42 @@ var ChirpService = class {
         friendEmails
       );
       console.log(`\u627E\u5230 ${emails.length} \u5C01\u672A\u8BFB\u557E\u557E`);
-      let processedCount = 0;
+      const receivedRecords = [];
       for (const email of emails) {
-        const wasProcessed = await this.processReceivedEmail(email);
-        if (wasProcessed) {
-          processedCount++;
+        const record = await this.processReceivedEmail(email);
+        if (record) {
+          receivedRecords.push(record);
         }
       }
-      if (processedCount > 0) {
-        new import_obsidian10.Notice(`\u2705 \u6536\u5230 ${processedCount} \u5C01\u65B0\u557E\u557E\uFF01`);
+      if (receivedRecords.length > 0) {
+        new import_obsidian11.Notice(`\u2705 \u6536\u5230 ${receivedRecords.length} \u5C01\u65B0\u557E\u557E\uFF01`);
+        await this.plugin.receiveLogger.logReceivedChirps(receivedRecords);
       }
     } catch (error) {
       console.error("\u63A5\u6536\u557E\u557E\u5931\u8D25:", error);
       if (error.type === "AUTH_FAILED" /* AUTH_FAILED */) {
-        new import_obsidian10.Notice("\u274C \u90AE\u7BB1\u8BA4\u8BC1\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u914D\u7F6E");
+        new import_obsidian11.Notice("\u274C \u90AE\u7BB1\u8BA4\u8BC1\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u914D\u7F6E");
       } else if (error.type === "NETWORK_ERROR" /* NETWORK_ERROR */) {
-        new import_obsidian10.Notice("\u26A0\uFE0F \u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u7A0D\u540E\u91CD\u8BD5");
+        new import_obsidian11.Notice("\u26A0\uFE0F \u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u7A0D\u540E\u91CD\u8BD5");
       } else {
-        new import_obsidian10.Notice("\u274C \u63A5\u6536\u5931\u8D25: " + (error.message || "\u672A\u77E5\u9519\u8BEF"));
+        new import_obsidian11.Notice("\u274C \u63A5\u6536\u5931\u8D25: " + (error.message || "\u672A\u77E5\u9519\u8BEF"));
       }
     }
   }
   /**
    * 处理单封接收的邮件
-   * @returns 是否实际处理了邮件（true=新邮件已处理，false=已处理过或失败）
+   * @returns 如果成功处理返回接收记录对象，否则返回 null
    */
   async processReceivedEmail(email) {
     const messageId = email.messageId;
     try {
       if (this.plugin.data.processedMessageIds.includes(messageId)) {
         console.log(`\u90AE\u4EF6 ${messageId} \u5DF2\u5904\u7406\uFF0C\u8DF3\u8FC7`);
-        return false;
+        return null;
       }
       if (this.plugin.data.failedMessageIds.includes(messageId)) {
         console.log(`\u90AE\u4EF6 ${messageId} \u4E4B\u524D\u5904\u7406\u5931\u8D25\uFF0C\u8DF3\u8FC7`);
-        return false;
+        return null;
       }
       console.log(`\u5904\u7406\u90AE\u4EF6: ${messageId}`);
       const decryptedJson = await this.plugin.cryptoModule.decryptMessage(
@@ -16513,8 +16602,8 @@ var ChirpService = class {
         throw new ChirpError("INVALID_JSON" /* INVALID_JSON */, "\u557E\u557E\u6D88\u606F\u683C\u5F0F\u65E0\u6548");
       }
       const sender = this.plugin.data.friends.find((f2) => f2.email === email.from);
-      const senderNickname = sender ? sender.nickname : email.from.split("@")[0];
-      await this.createChirpNote(chirpMessage, senderNickname);
+      const senderName = sender ? sender.nickname : email.from;
+      await this.createChirpNote(chirpMessage, sender ? sender.nickname : email.from.split("@")[0]);
       try {
         await this.plugin.mailModule.markAsRead(
           messageId,
@@ -16527,15 +16616,19 @@ var ChirpService = class {
       }
       await this.plugin.storageModule.addProcessedMessageId(messageId);
       console.log(`\u557E\u557E\u5904\u7406\u6210\u529F: ${chirpMessage.note.title}`);
-      return true;
+      return {
+        senderName,
+        noteTitle: chirpMessage.note.title,
+        timestamp: Date.now()
+      };
     } catch (error) {
       console.error(`\u5904\u7406\u90AE\u4EF6 ${messageId} \u5931\u8D25:`, error);
       if (error.type === "DECRYPTION_FAILED" /* DECRYPTION_FAILED */) {
-        new import_obsidian10.Notice(`\u274C \u89E3\u5BC6\u5931\u8D25\uFF1A\u53EF\u80FD\u4E0D\u662F\u53D1\u7ED9\u4F60\u7684\u557E\u557E`);
+        new import_obsidian11.Notice(`\u274C \u89E3\u5BC6\u5931\u8D25\uFF1A\u53EF\u80FD\u4E0D\u662F\u53D1\u7ED9\u4F60\u7684\u557E\u557E`);
       } else if (error.type === "INVALID_JSON" /* INVALID_JSON */) {
-        new import_obsidian10.Notice(`\u274C \u557E\u557E\u683C\u5F0F\u9519\u8BEF`);
+        new import_obsidian11.Notice(`\u274C \u557E\u557E\u683C\u5F0F\u9519\u8BEF`);
       } else {
-        new import_obsidian10.Notice(`\u274C \u5904\u7406\u5931\u8D25: ${error.message}`);
+        new import_obsidian11.Notice(`\u274C \u5904\u7406\u5931\u8D25: ${error.message}`);
       }
       await this.plugin.storageModule.addFailedMessageId(messageId);
       try {
@@ -16548,7 +16641,7 @@ var ChirpService = class {
       } catch (markError) {
         console.log("\u6807\u8BB0\u5931\u8D25\u90AE\u4EF6\u4E3A\u5DF2\u8BFB\u5931\u8D25\uFF08POP3\u4E0D\u652F\u6301\u6B64\u64CD\u4F5C\uFF09");
       }
-      return false;
+      return null;
     }
   }
   /**
@@ -16600,7 +16693,7 @@ var DEFAULT_DATA = {
   failedMessageIds: [],
   settings: DEFAULT_SETTINGS
 };
-var ChirpChirpPlugin = class extends import_obsidian11.Plugin {
+var ChirpChirpPlugin = class extends import_obsidian12.Plugin {
   async onload() {
     console.log("\u52A0\u8F7D\u557E\u557E\u90AE\u5C40\u63D2\u4EF6");
     await this.loadSettings();
@@ -16632,6 +16725,7 @@ var ChirpChirpPlugin = class extends import_obsidian11.Plugin {
     this.cryptoModule = new CryptoModule();
     this.mailModule = new MailModule();
     this.queueModule = new QueueModule(this, this.data);
+    this.receiveLogger = new ReceiveLogger(this);
     this.chirpService = new ChirpService(this);
     this.pollingModule = new PollingModule(this, this.data.settings.pollingInterval);
     this.uiModule = new UIModule(this);
