@@ -16179,7 +16179,7 @@ var ChirpChirpSettingTab = class extends import_obsidian9.PluginSettingTab {
       return [
         "\u8BBF\u95EE mail.163.com \u5E76\u767B\u5F55",
         '\u70B9\u51FB\u9876\u90E8"\u8BBE\u7F6E" \u2192 "POP3/SMTP/IMAP"',
-        '\u5F00\u542F"POP3/SMTP\u670D\u52A1"',
+        '\u5F00\u542F"POP3/SMTP\u670D\u52A1\u53CAIMAP/SMTP\u670D\u52A1"',
         '\u70B9\u51FB"\u5BA2\u6237\u7AEF\u6388\u6743\u5BC6\u7801"\uFF0C\u6309\u63D0\u793A\u751F\u6210\u6388\u6743\u7801',
         "\u590D\u5236\u6388\u6743\u7801\u5E76\u7C98\u8D34\u5230\u4E0B\u65B9\u8F93\u5165\u6846"
       ];
@@ -16187,7 +16187,7 @@ var ChirpChirpSettingTab = class extends import_obsidian9.PluginSettingTab {
       return [
         "\u8BBF\u95EE mail.126.com \u5E76\u767B\u5F55",
         '\u70B9\u51FB\u9876\u90E8"\u8BBE\u7F6E" \u2192 "POP3/SMTP/IMAP"',
-        '\u5F00\u542F"POP3/SMTP\u670D\u52A1"',
+        '\u5F00\u542F"POP3/SMTP\u670D\u52A1\u53CAIMAP/SMTP\u670D\u52A1"',
         '\u70B9\u51FB"\u5BA2\u6237\u7AEF\u6388\u6743\u5BC6\u7801"\uFF0C\u6309\u63D0\u793A\u751F\u6210\u6388\u6743\u7801',
         "\u590D\u5236\u6388\u6743\u7801\u5E76\u7C98\u8D34\u5230\u4E0B\u65B9\u8F93\u5165\u6846"
       ];
