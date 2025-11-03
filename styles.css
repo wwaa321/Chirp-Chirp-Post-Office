@@ -309,6 +309,70 @@
     gap: 5px;
 }
 
+/* 发送笔记模态框样式 */
+.chirp-send-note-modal {
+    min-width: 400px;
+    max-width: 500px;
+}
+
+.chirp-note-info {
+    padding: 10px;
+    margin: 15px 0;
+    background-color: var(--background-secondary);
+    border-radius: 5px;
+    border-left: 3px solid var(--interactive-accent);
+}
+
+.chirp-friend-selector {
+    margin: 15px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.chirp-friend-option {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    margin: 8px 0;
+    background-color: var(--background-secondary);
+    border-radius: 5px;
+    border: 2px solid var(--background-modifier-border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chirp-friend-option:hover {
+    background-color: var(--background-secondary-alt);
+    border-color: var(--interactive-accent);
+}
+
+.chirp-friend-option.selected {
+    background-color: var(--background-modifier-hover);
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 1px var(--interactive-accent);
+}
+
+.chirp-friend-option input[type="radio"] {
+    margin-right: 12px;
+    cursor: pointer;
+}
+
+.chirp-friend-option .chirp-friend-info {
+    flex: 1;
+}
+
+/* 公钥查看模态框样式 */
+.chirp-public-key-modal {
+    min-width: 450px;
+    max-width: 600px;
+}
+
+.chirp-public-key-description {
+    margin: 15px 0;
+    line-height: 1.6;
+    color: var(--text-muted);
+}
+
 /* 欢迎页面样式 */
 .chirp-welcome-modal {
     max-width: 600px;

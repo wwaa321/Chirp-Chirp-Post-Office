@@ -27,7 +27,7 @@ __export(main_exports, {
   default: () => ChirpChirpPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian12 = require("obsidian");
+var import_obsidian14 = require("obsidian");
 
 // src/modules/AuthModule.ts
 var AuthModule = class {
@@ -15379,7 +15379,7 @@ var PollingModule = class {
 };
 
 // src/modules/UIModule.ts
-var import_obsidian8 = require("obsidian");
+var import_obsidian10 = require("obsidian");
 
 // src/ui/AddressBookModal.ts
 var import_obsidian3 = require("obsidian");
@@ -15890,6 +15890,157 @@ var MigrationNoticeModal = class extends import_obsidian7.Modal {
   }
 };
 
+// src/ui/SendNoteModal.ts
+var import_obsidian8 = require("obsidian");
+var SendNoteModal = class extends import_obsidian8.Modal {
+  constructor(app, plugin, file) {
+    super(app);
+    this.selectedFriendId = null;
+    this.plugin = plugin;
+    this.file = file;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("chirp-send-note-modal");
+    contentEl.createEl("h2", { text: "\u{1F4EE} \u53D1\u9001\u7B14\u8BB0" });
+    const noteInfo = contentEl.createDiv({ cls: "chirp-note-info" });
+    noteInfo.createEl("strong", { text: "\u7B14\u8BB0: " });
+    noteInfo.createEl("span", { text: this.file.basename });
+    contentEl.createEl("h3", { text: "\u9009\u62E9\u6536\u4EF6\u4EBA" });
+    this.renderFriendList(contentEl);
+    const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });
+    const cancelBtn = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
+    cancelBtn.onclick = () => {
+      this.close();
+    };
+    const sendBtn = buttonContainer.createEl("button", {
+      text: "\u53D1\u9001",
+      cls: "mod-cta"
+    });
+    sendBtn.onclick = async () => {
+      await this.handleSend();
+    };
+  }
+  /**
+   * 渲染好友列表
+   */
+  renderFriendList(container) {
+    const friends = this.plugin.storageModule.getFriends();
+    if (friends.length === 0) {
+      container.createEl("p", {
+        text: "\u8FD8\u6CA1\u6709\u6DFB\u52A0\u597D\u53CB\uFF0C\u8BF7\u5148\u6DFB\u52A0\u597D\u53CB",
+        cls: "chirp-empty-message"
+      });
+      return;
+    }
+    const selectorContainer = container.createDiv({ cls: "chirp-friend-selector" });
+    friends.forEach((friend) => {
+      const optionEl = selectorContainer.createDiv({ cls: "chirp-friend-option" });
+      const radio = optionEl.createEl("input", {
+        type: "radio",
+        attr: {
+          name: "friend-selector",
+          value: friend.id
+        }
+      });
+      radio.onclick = () => {
+        this.selectedFriendId = friend.id;
+        selectorContainer.querySelectorAll(".chirp-friend-option").forEach((el2) => {
+          el2.removeClass("selected");
+        });
+        optionEl.addClass("selected");
+      };
+      const infoEl = optionEl.createDiv({ cls: "chirp-friend-info" });
+      infoEl.createEl("div", {
+        text: friend.nickname,
+        cls: "chirp-friend-nickname"
+      });
+      infoEl.createEl("div", {
+        text: friend.email,
+        cls: "chirp-friend-email"
+      });
+    });
+  }
+  /**
+   * 处理发送
+   */
+  async handleSend() {
+    if (!this.selectedFriendId) {
+      new import_obsidian8.Notice("\u274C \u8BF7\u9009\u62E9\u4E00\u4E2A\u597D\u53CB");
+      return;
+    }
+    const friend = this.plugin.data.friends.find((f2) => f2.id === this.selectedFriendId);
+    if (!friend) {
+      new import_obsidian8.Notice("\u274C \u597D\u53CB\u4E0D\u5B58\u5728");
+      return;
+    }
+    try {
+      await this.plugin.chirpService.sendChirp(this.file, friend);
+      this.close();
+    } catch (error) {
+      console.error("\u53D1\u9001\u5931\u8D25:", error);
+    }
+  }
+  onClose() {
+    const { contentEl } = this;
+    contentEl.empty();
+  }
+};
+
+// src/ui/PublicKeyModal.ts
+var import_obsidian9 = require("obsidian");
+var PublicKeyModal = class extends import_obsidian9.Modal {
+  constructor(app, plugin) {
+    super(app);
+    this.plugin = plugin;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("chirp-public-key-modal");
+    this.titleEl.setText("\u{1F511} \u6211\u7684\u516C\u94A5");
+    contentEl.createEl("p", {
+      text: "\u8BF7\u5C06\u4E0B\u9762\u7684\u516C\u94A5\u5206\u4EAB\u7ED9\u4F60\u7684\u597D\u53CB\uFF0C\u4ED6\u4EEC\u9700\u8981\u8FD9\u4E2A\u516C\u94A5\u624D\u80FD\u7ED9\u4F60\u53D1\u9001\u557E\u557E\u3002",
+      cls: "chirp-public-key-description"
+    });
+    const keyDisplay = contentEl.createEl("div", {
+      cls: "chirp-public-key-display"
+    });
+    keyDisplay.setText(this.plugin.data.crypto.publicKey);
+    const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });
+    const copyBtn = buttonContainer.createEl("button", {
+      text: "\u590D\u5236\u516C\u94A5",
+      cls: "mod-cta"
+    });
+    copyBtn.onclick = () => {
+      this.handleCopy();
+    };
+    const closeBtn = buttonContainer.createEl("button", {
+      text: "\u5173\u95ED"
+    });
+    closeBtn.onclick = () => {
+      this.close();
+    };
+  }
+  /**
+   * 处理复制
+   */
+  handleCopy() {
+    try {
+      navigator.clipboard.writeText(this.plugin.data.crypto.publicKey);
+      new import_obsidian9.Notice("\u2705 \u516C\u94A5\u5DF2\u590D\u5236\u5230\u526A\u8D34\u677F");
+    } catch (error) {
+      console.error("\u590D\u5236\u5931\u8D25:", error);
+      new import_obsidian9.Notice("\u274C \u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u624B\u52A8\u590D\u5236");
+    }
+  }
+  onClose() {
+    const { contentEl } = this;
+    contentEl.empty();
+  }
+};
+
 // src/modules/UIModule.ts
 var UIModule = class {
   constructor(plugin) {
@@ -15946,16 +16097,66 @@ var UIModule = class {
     new QueueModal(this.plugin.app, this.plugin).open();
   }
   /**
+   * 显示发送笔记模态窗口
+   */
+  showSendNoteModal(file) {
+    const friends = this.plugin.storageModule.getFriends();
+    if (friends.length === 0) {
+      new import_obsidian10.Notice("\u274C \u8FD8\u6CA1\u6709\u6DFB\u52A0\u597D\u53CB\uFF0C\u8BF7\u5148\u6DFB\u52A0\u597D\u53CB");
+      return;
+    }
+    new SendNoteModal(this.plugin.app, this.plugin, file).open();
+  }
+  /**
+   * 显示公钥模态窗口
+   */
+  showPublicKeyModal() {
+    const publicKey = this.plugin.data.crypto.publicKey;
+    if (!publicKey) {
+      new import_obsidian10.Notice("\u274C \u8FD8\u6CA1\u6709\u751F\u6210\u5BC6\u94A5\u5BF9\uFF0C\u8BF7\u5148\u914D\u7F6E\u90AE\u7BB1");
+      return;
+    }
+    new PublicKeyModal(this.plugin.app, this.plugin).open();
+  }
+  /**
    * 显示通知
    */
   showNotice(message) {
-    new import_obsidian8.Notice(message);
+    new import_obsidian10.Notice(message);
   }
   /**
    * 显示错误
    */
   showError(message) {
-    new import_obsidian8.Notice("\u274C " + message);
+    new import_obsidian10.Notice("\u274C " + message);
+  }
+  /**
+   * 注册右键菜单
+   */
+  registerContextMenus() {
+    this.plugin.registerEvent(
+      this.plugin.app.workspace.on("file-menu", (menu, file) => {
+        if (file instanceof import_obsidian10.TFile && file.extension === "md") {
+          menu.addItem((item) => {
+            item.setTitle("\u53D1\u9001\u7B14\u8BB0").setIcon("send").onClick(() => {
+              this.showSendNoteModal(file);
+            });
+          });
+        }
+      })
+    );
+    this.plugin.registerEvent(
+      this.plugin.app.workspace.on("editor-menu", (menu, editor, view) => {
+        const file = view.file;
+        if (file) {
+          menu.addItem((item) => {
+            item.setTitle("\u53D1\u9001\u5F53\u524D\u7B14\u8BB0").setIcon("send").onClick(() => {
+              this.showSendNoteModal(file);
+            });
+          });
+        }
+      })
+    );
   }
   /**
    * 注册命令
@@ -16002,23 +16203,17 @@ var UIModule = class {
       editorCallback: async (editor, view) => {
         const file = view.file;
         if (!file) {
-          new import_obsidian8.Notice("\u274C \u6CA1\u6709\u6253\u5F00\u7684\u7B14\u8BB0");
+          new import_obsidian10.Notice("\u274C \u6CA1\u6709\u6253\u5F00\u7684\u7B14\u8BB0");
           return;
         }
-        this.showFriendSelectionMenu(file);
+        this.showSendNoteModal(file);
       }
     });
     this.plugin.addCommand({
       id: "view-my-public-key",
       name: "\u67E5\u770B\u6211\u7684\u516C\u94A5",
       callback: () => {
-        const publicKey = this.plugin.data.crypto.publicKey;
-        if (!publicKey) {
-          new import_obsidian8.Notice("\u274C \u8FD8\u6CA1\u6709\u751F\u6210\u5BC6\u94A5\u5BF9\uFF0C\u8BF7\u5148\u914D\u7F6E\u90AE\u7BB1");
-          return;
-        }
-        navigator.clipboard.writeText(publicKey);
-        new import_obsidian8.Notice("\u2705 \u516C\u94A5\u5DF2\u590D\u5236\u5230\u526A\u8D34\u677F");
+        this.showPublicKeyModal();
       }
     });
   }
@@ -16028,10 +16223,10 @@ var UIModule = class {
   showFriendSelectionMenu(file) {
     const friends = this.plugin.storageModule.getFriends();
     if (friends.length === 0) {
-      new import_obsidian8.Notice("\u274C \u8FD8\u6CA1\u6709\u6DFB\u52A0\u597D\u53CB\uFF0C\u8BF7\u5148\u6DFB\u52A0\u597D\u53CB");
+      new import_obsidian10.Notice("\u274C \u8FD8\u6CA1\u6709\u6DFB\u52A0\u597D\u53CB\uFF0C\u8BF7\u5148\u6DFB\u52A0\u597D\u53CB");
       return;
     }
-    const menu = new import_obsidian8.Menu();
+    const menu = new import_obsidian10.Menu();
     friends.forEach((friend) => {
       menu.addItem((item) => {
         item.setTitle(`\u53D1\u9001\u7ED9 ${friend.nickname}`).setIcon("send").onClick(async () => {
@@ -16048,7 +16243,7 @@ var UIModule = class {
 };
 
 // src/modules/ReceiveLogger.ts
-var import_obsidian9 = require("obsidian");
+var import_obsidian11 = require("obsidian");
 var ReceiveLogger = class {
   constructor(plugin) {
     this.LOG_FILE_NAME = "\u63A5\u6536\u8BB0\u5F55.md";
@@ -16071,7 +16266,7 @@ var ReceiveLogger = class {
       const logPath = this.getLogFilePath();
       const newEntry = this.formatLogEntry(records);
       const existingFile = this.plugin.app.vault.getAbstractFileByPath(logPath);
-      if (existingFile && existingFile instanceof import_obsidian9.TFile) {
+      if (existingFile && existingFile instanceof import_obsidian11.TFile) {
         const existingContent = await this.plugin.app.vault.read(existingFile);
         const updatedContent = newEntry + "\n" + existingContent;
         await this.plugin.app.vault.modify(existingFile, updatedContent);
@@ -16118,8 +16313,7 @@ var ReceiveLogger = class {
    * 创建初始文件内容
    */
   createInitialContent(firstEntry) {
-    return `# \u557E\u557E\u63A5\u6536\u8BB0\u5F55
-
+    return `
 ${firstEntry}`;
   }
   /**
@@ -16136,8 +16330,8 @@ ${firstEntry}`;
 };
 
 // src/ui/SettingTab.ts
-var import_obsidian10 = require("obsidian");
-var ChirpChirpSettingTab = class extends import_obsidian10.PluginSettingTab {
+var import_obsidian12 = require("obsidian");
+var ChirpChirpSettingTab = class extends import_obsidian12.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -16155,7 +16349,7 @@ var ChirpChirpSettingTab = class extends import_obsidian10.PluginSettingTab {
    */
   renderEmailSection(containerEl) {
     containerEl.createEl("h3", { text: "\u90AE\u7BB1\u914D\u7F6E" });
-    new import_obsidian10.Setting(containerEl).setName("\u90AE\u7BB1\u670D\u52A1\u5546").setDesc("\u9009\u62E9\u60A8\u8981\u4F7F\u7528\u7684\u90AE\u7BB1\u670D\u52A1\u5546").addDropdown((dropdown) => {
+    new import_obsidian12.Setting(containerEl).setName("\u90AE\u7BB1\u670D\u52A1\u5546").setDesc("\u9009\u62E9\u60A8\u8981\u4F7F\u7528\u7684\u90AE\u7BB1\u670D\u52A1\u5546").addDropdown((dropdown) => {
       dropdown.addOption("", "\u8BF7\u9009\u62E9...");
       const providers = getSupportedProviders();
       providers.forEach((provider) => {
@@ -16198,7 +16392,7 @@ var ChirpChirpSettingTab = class extends import_obsidian10.PluginSettingTab {
     steps.forEach((step) => {
       ol2.createEl("li", { text: step });
     });
-    new import_obsidian10.Setting(containerEl).setName("\u90AE\u7BB1\u5730\u5740").setDesc("\u8F93\u5165\u60A8\u7684\u90AE\u7BB1\u5730\u5740").addText((text) => {
+    new import_obsidian12.Setting(containerEl).setName("\u90AE\u7BB1\u5730\u5740").setDesc("\u8F93\u5165\u60A8\u7684\u90AE\u7BB1\u5730\u5740").addText((text) => {
       let placeholder = "example@example.com";
       if (provider === "163")
         placeholder = "example@163.com";
@@ -16211,20 +16405,20 @@ var ChirpChirpSettingTab = class extends import_obsidian10.PluginSettingTab {
         await this.plugin.saveSettings();
       });
     });
-    new import_obsidian10.Setting(containerEl).setName("\u6388\u6743\u7801").setDesc("\u7C98\u8D34\u4ECE\u90AE\u7BB1\u8BBE\u7F6E\u4E2D\u83B7\u53D6\u7684\u6388\u6743\u7801").addText((text) => {
+    new import_obsidian12.Setting(containerEl).setName("\u6388\u6743\u7801").setDesc("\u7C98\u8D34\u4ECE\u90AE\u7BB1\u8BBE\u7F6E\u4E2D\u83B7\u53D6\u7684\u6388\u6743\u7801").addText((text) => {
       text.setPlaceholder("\u8F93\u5165\u6388\u6743\u7801").setValue(this.plugin.data.auth.password || "").onChange(async (value) => {
         this.plugin.data.auth.password = value;
         await this.plugin.saveSettings();
       });
       text.inputEl.type = "password";
     });
-    new import_obsidian10.Setting(containerEl).setName("\u6D4B\u8BD5\u8FDE\u63A5").setDesc("\u9A8C\u8BC1\u90AE\u7BB1\u914D\u7F6E\u662F\u5426\u6B63\u786E").addButton((button) => {
+    new import_obsidian12.Setting(containerEl).setName("\u6D4B\u8BD5\u8FDE\u63A5").setDesc("\u9A8C\u8BC1\u90AE\u7BB1\u914D\u7F6E\u662F\u5426\u6B63\u786E").addButton((button) => {
       button.setButtonText("\u6D4B\u8BD5\u8FDE\u63A5").setCta().onClick(async () => {
         if (!this.plugin.data.auth.email || !this.plugin.data.auth.password) {
-          new import_obsidian10.Notice("\u8BF7\u5148\u586B\u5199\u90AE\u7BB1\u5730\u5740\u548C\u6388\u6743\u7801");
+          new import_obsidian12.Notice("\u8BF7\u5148\u586B\u5199\u90AE\u7BB1\u5730\u5740\u548C\u6388\u6743\u7801");
           return;
         }
-        const notice = new import_obsidian10.Notice("\u6B63\u5728\u6D4B\u8BD5\u8FDE\u63A5...", 0);
+        const notice = new import_obsidian12.Notice("\u6B63\u5728\u6D4B\u8BD5\u8FDE\u63A5...", 0);
         button.setDisabled(true);
         try {
           await this.plugin.mailModule.testIMAPConnection(
@@ -16238,7 +16432,7 @@ var ChirpChirpSettingTab = class extends import_obsidian10.PluginSettingTab {
             provider
           );
           notice.hide();
-          new import_obsidian10.Notice("\u2705 \u8FDE\u63A5\u6210\u529F\uFF01\u90AE\u7BB1\u914D\u7F6E\u6B63\u786E");
+          new import_obsidian12.Notice("\u2705 \u8FDE\u63A5\u6210\u529F\uFF01\u90AE\u7BB1\u914D\u7F6E\u6B63\u786E");
           await this.plugin.saveSettings();
           if (!this.plugin.data.crypto.publicKey) {
             await this.generateKeyPair();
@@ -16247,11 +16441,11 @@ var ChirpChirpSettingTab = class extends import_obsidian10.PluginSettingTab {
           notice.hide();
           console.error("\u6D4B\u8BD5\u8FDE\u63A5\u5931\u8D25:", error);
           if (error.type === "AUTH_FAILED") {
-            new import_obsidian10.Notice("\u274C \u90AE\u7BB1\u5730\u5740\u6216\u6388\u6743\u7801\u9519\u8BEF\uFF0C\u8BF7\u68C0\u67E5\u540E\u91CD\u8BD5");
+            new import_obsidian12.Notice("\u274C \u90AE\u7BB1\u5730\u5740\u6216\u6388\u6743\u7801\u9519\u8BEF\uFF0C\u8BF7\u68C0\u67E5\u540E\u91CD\u8BD5");
           } else if (error.type === "NETWORK_ERROR") {
-            new import_obsidian10.Notice("\u274C \u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u8BBE\u7F6E");
+            new import_obsidian12.Notice("\u274C \u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u8BBE\u7F6E");
           } else {
-            new import_obsidian10.Notice("\u274C \u8FDE\u63A5\u5931\u8D25: " + (error.message || "\u672A\u77E5\u9519\u8BEF"));
+            new import_obsidian12.Notice("\u274C \u8FDE\u63A5\u5931\u8D25: " + (error.message || "\u672A\u77E5\u9519\u8BEF"));
           }
         } finally {
           button.setDisabled(false);
@@ -16296,7 +16490,7 @@ var ChirpChirpSettingTab = class extends import_obsidian10.PluginSettingTab {
    */
   renderPollingSection(containerEl) {
     containerEl.createEl("h3", { text: "\u8F6E\u8BE2\u914D\u7F6E" });
-    new import_obsidian10.Setting(containerEl).setName("\u68C0\u67E5\u95F4\u9694").setDesc("\u81EA\u52A8\u68C0\u67E5\u65B0\u90AE\u4EF6\u7684\u65F6\u95F4\u95F4\u9694\uFF08\u5206\u949F\uFF09").addSlider((slider) => {
+    new import_obsidian12.Setting(containerEl).setName("\u68C0\u67E5\u95F4\u9694").setDesc("\u81EA\u52A8\u68C0\u67E5\u65B0\u90AE\u4EF6\u7684\u65F6\u95F4\u95F4\u9694\uFF08\u5206\u949F\uFF09").addSlider((slider) => {
       slider.setLimits(1, 60, 1).setValue(this.plugin.settings.pollingInterval).setDynamicTooltip().onChange(async (value) => {
         this.plugin.settings.pollingInterval = value;
         await this.plugin.saveSettings();
@@ -16321,7 +16515,7 @@ var ChirpChirpSettingTab = class extends import_obsidian10.PluginSettingTab {
    */
   renderMailHandlingSection(containerEl) {
     containerEl.createEl("h3", { text: "\u90AE\u4EF6\u5904\u7406" });
-    new import_obsidian10.Setting(containerEl).setName("\u6536\u4EF6\u7BB1\u6587\u4EF6\u5939").setDesc("\u63A5\u6536\u5230\u7684\u557E\u557E\u4FDD\u5B58\u7684\u6587\u4EF6\u5939\u8DEF\u5F84").addText((text) => {
+    new import_obsidian12.Setting(containerEl).setName("\u6536\u4EF6\u7BB1\u6587\u4EF6\u5939").setDesc("\u63A5\u6536\u5230\u7684\u557E\u557E\u4FDD\u5B58\u7684\u6587\u4EF6\u5939\u8DEF\u5F84").addText((text) => {
       text.setPlaceholder("\u557E\u557E\u90AE\u5C40").setValue(this.plugin.settings.inboxFolder).onChange(async (value) => {
         this.plugin.settings.inboxFolder = value || "\u557E\u557E\u90AE\u5C40";
         await this.plugin.saveSettings();
@@ -16333,7 +16527,7 @@ var ChirpChirpSettingTab = class extends import_obsidian10.PluginSettingTab {
    */
   async generateKeyPair() {
     try {
-      const notice = new import_obsidian10.Notice("\u6B63\u5728\u751F\u6210\u5BC6\u94A5\u5BF9...", 0);
+      const notice = new import_obsidian12.Notice("\u6B63\u5728\u751F\u6210\u5BC6\u94A5\u5BF9...", 0);
       const email = this.plugin.data.auth.email;
       const name = email.split("@")[0];
       const keyPair = await this.plugin.cryptoModule.generateKeyPair(name, email);
@@ -16343,14 +16537,14 @@ var ChirpChirpSettingTab = class extends import_obsidian10.PluginSettingTab {
       notice.hide();
       this.showPublicKey(keyPair.publicKey);
     } catch (error) {
-      new import_obsidian10.Notice("\u274C \u5BC6\u94A5\u751F\u6210\u5931\u8D25: " + error.message);
+      new import_obsidian12.Notice("\u274C \u5BC6\u94A5\u751F\u6210\u5931\u8D25: " + error.message);
     }
   }
   /**
    * 显示公钥
    */
   showPublicKey(publicKey) {
-    const modal = new class extends import_obsidian10.Modal {
+    const modal = new class extends import_obsidian12.Modal {
       constructor(app) {
         super(app);
       }
@@ -16374,7 +16568,7 @@ var ChirpChirpSettingTab = class extends import_obsidian10.PluginSettingTab {
         copyBtn.style.marginTop = "10px";
         copyBtn.onclick = () => {
           navigator.clipboard.writeText(key);
-          new import_obsidian10.Notice("\u2705 \u516C\u94A5\u5DF2\u590D\u5236\u5230\u526A\u8D34\u677F");
+          new import_obsidian12.Notice("\u2705 \u516C\u94A5\u5DF2\u590D\u5236\u5230\u526A\u8D34\u677F");
         };
       }
     }(this.app);
@@ -16383,7 +16577,7 @@ var ChirpChirpSettingTab = class extends import_obsidian10.PluginSettingTab {
 };
 
 // src/services/ChirpService.ts
-var import_obsidian11 = require("obsidian");
+var import_obsidian13 = require("obsidian");
 var ChirpService = class {
   constructor(plugin) {
     this.plugin = plugin;
@@ -16429,7 +16623,7 @@ var ChirpService = class {
         noteTitle: file.basename,
         status: "success"
       });
-      new import_obsidian11.Notice(`\u2705 \u557E\u557E\u5DF2\u53D1\u9001\u7ED9 ${friend.nickname}\uFF01`);
+      new import_obsidian13.Notice(`\u2705 \u557E\u557E\u5DF2\u53D1\u9001\u7ED9 ${friend.nickname}\uFF01`);
       console.log("\u557E\u557E\u53D1\u9001\u6210\u529F:", {
         to: friend.email,
         note: file.basename
@@ -16445,13 +16639,13 @@ var ChirpService = class {
       });
       if (error.type === "NETWORK_ERROR" /* NETWORK_ERROR */) {
         await this.addToSendQueue(file, friend);
-        new import_obsidian11.Notice("\u26A0\uFE0F \u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u557E\u557E\u5DF2\u52A0\u5165\u53D1\u9001\u961F\u5217");
+        new import_obsidian13.Notice("\u26A0\uFE0F \u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u557E\u557E\u5DF2\u52A0\u5165\u53D1\u9001\u961F\u5217");
       } else if (error.type === "ENCRYPTION_FAILED" /* ENCRYPTION_FAILED */) {
-        new import_obsidian11.Notice("\u274C \u52A0\u5BC6\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u597D\u53CB\u516C\u94A5");
+        new import_obsidian13.Notice("\u274C \u52A0\u5BC6\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u597D\u53CB\u516C\u94A5");
       } else if (error.type === "AUTH_FAILED" /* AUTH_FAILED */) {
-        new import_obsidian11.Notice("\u274C \u8BA4\u8BC1\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u90AE\u7BB1\u914D\u7F6E");
+        new import_obsidian13.Notice("\u274C \u8BA4\u8BC1\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u90AE\u7BB1\u914D\u7F6E");
       } else {
-        new import_obsidian11.Notice("\u274C \u53D1\u9001\u5931\u8D25: " + (error.message || "\u672A\u77E5\u9519\u8BEF"));
+        new import_obsidian13.Notice("\u274C \u53D1\u9001\u5931\u8D25: " + (error.message || "\u672A\u77E5\u9519\u8BEF"));
       }
       throw error;
     }
@@ -16563,17 +16757,17 @@ var ChirpService = class {
         }
       }
       if (receivedRecords.length > 0) {
-        new import_obsidian11.Notice(`\u2705 \u6536\u5230 ${receivedRecords.length} \u5C01\u65B0\u557E\u557E\uFF01`);
+        new import_obsidian13.Notice(`\u2705 \u6536\u5230 ${receivedRecords.length} \u5C01\u65B0\u557E\u557E\uFF01`);
         await this.plugin.receiveLogger.logReceivedChirps(receivedRecords);
       }
     } catch (error) {
       console.error("\u63A5\u6536\u557E\u557E\u5931\u8D25:", error);
       if (error.type === "AUTH_FAILED" /* AUTH_FAILED */) {
-        new import_obsidian11.Notice("\u274C \u90AE\u7BB1\u8BA4\u8BC1\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u914D\u7F6E");
+        new import_obsidian13.Notice("\u274C \u90AE\u7BB1\u8BA4\u8BC1\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u914D\u7F6E");
       } else if (error.type === "NETWORK_ERROR" /* NETWORK_ERROR */) {
-        new import_obsidian11.Notice("\u26A0\uFE0F \u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u7A0D\u540E\u91CD\u8BD5");
+        new import_obsidian13.Notice("\u26A0\uFE0F \u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u7A0D\u540E\u91CD\u8BD5");
       } else {
-        new import_obsidian11.Notice("\u274C \u63A5\u6536\u5931\u8D25: " + (error.message || "\u672A\u77E5\u9519\u8BEF"));
+        new import_obsidian13.Notice("\u274C \u63A5\u6536\u5931\u8D25: " + (error.message || "\u672A\u77E5\u9519\u8BEF"));
       }
     }
   }
@@ -16624,11 +16818,11 @@ var ChirpService = class {
     } catch (error) {
       console.error(`\u5904\u7406\u90AE\u4EF6 ${messageId} \u5931\u8D25:`, error);
       if (error.type === "DECRYPTION_FAILED" /* DECRYPTION_FAILED */) {
-        new import_obsidian11.Notice(`\u274C \u89E3\u5BC6\u5931\u8D25\uFF1A\u53EF\u80FD\u4E0D\u662F\u53D1\u7ED9\u4F60\u7684\u557E\u557E`);
+        new import_obsidian13.Notice(`\u274C \u89E3\u5BC6\u5931\u8D25\uFF1A\u53EF\u80FD\u4E0D\u662F\u53D1\u7ED9\u4F60\u7684\u557E\u557E`);
       } else if (error.type === "INVALID_JSON" /* INVALID_JSON */) {
-        new import_obsidian11.Notice(`\u274C \u557E\u557E\u683C\u5F0F\u9519\u8BEF`);
+        new import_obsidian13.Notice(`\u274C \u557E\u557E\u683C\u5F0F\u9519\u8BEF`);
       } else {
-        new import_obsidian11.Notice(`\u274C \u5904\u7406\u5931\u8D25: ${error.message}`);
+        new import_obsidian13.Notice(`\u274C \u5904\u7406\u5931\u8D25: ${error.message}`);
       }
       await this.plugin.storageModule.addFailedMessageId(messageId);
       try {
@@ -16693,13 +16887,14 @@ var DEFAULT_DATA = {
   failedMessageIds: [],
   settings: DEFAULT_SETTINGS
 };
-var ChirpChirpPlugin = class extends import_obsidian12.Plugin {
+var ChirpChirpPlugin = class extends import_obsidian14.Plugin {
   async onload() {
     console.log("\u52A0\u8F7D\u557E\u557E\u90AE\u5C40\u63D2\u4EF6");
     await this.loadSettings();
     this.initializeModules();
     await this.checkMigrationNeeded();
     this.uiModule.registerCommands();
+    this.uiModule.registerContextMenus();
     this.addSettingTab(new ChirpChirpSettingTab(this.app, this));
     if (this.settings.showWelcome && !this.data.auth.provider) {
       setTimeout(() => {
