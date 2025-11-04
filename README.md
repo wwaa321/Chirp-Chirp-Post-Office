@@ -319,3 +319,11 @@ A: 发送时需要，接收会在后台自动进行（当 Obsidian 打开时）�
   
 
 在这个快节奏的时代，让我们一起慢下来，用心写下每一个字，珍惜每一次交流。
+
+**微信公众号：**MOAONO数字生活专家
+
+**百度网盘下载地址：**
+[https://pan.baidu.com/s/13PqcvUOkTJZf9AbaQQnjuA?pwd=re5w ](https://pan.baidu.com/s/13PqcvUOkTJZf9AbaQQnjuA?pwd=re5w )
+
+**使用帮助：**
+[啾啾邮局 (Chirp Chirp Post Office) - 飞书云文档](https://hcn23qlljg54.feishu.cn/wiki/Z5HAwJbIniOFfZkRXv2cutm0nCb)
